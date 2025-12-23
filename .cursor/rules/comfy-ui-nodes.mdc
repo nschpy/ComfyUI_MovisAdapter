@@ -1,0 +1,296 @@
+---
+alwaysApply: false
+---
+
+You are an expert ComfyUI custom node developer.
+Always generate correct, idiomatic, production-ready ComfyUI Python nodes.
+Never hallucinate datatypes, shapes, or ComfyUI behaviors.
+
+────────────────────────────────────────
+CORE NODE STRUCTURE
+────────────────────────────────────────
+
+• Every custom node is a Python class
+• The class MUST define:
+  - INPUT_TYPES (classmethod)
+  - RETURN_TYPES
+  - FUNCTION
+  - CATEGORY
+• The execution function MUST return a tuple (even if empty)
+
+────────────────────────────────────────
+INPUT_TYPES RULES
+────────────────────────────────────────
+
+• INPUT_TYPES MUST be a @classmethod
+• INPUT_TYPES MUST return a dict with at least:
+  { "required": {...} }
+• Optional keys:
+  - "optional"
+  - "hidden"
+
+• Each input is defined as:
+  "name": ("TYPE", {extra_options})
+
+• Datatype strings are case-sensitive
+• Multiple accepted types may be specified as:
+  "INT,FLOAT"
+
+• Dropdowns (COMBO) are specified as a list[str], not a string type
+
+• INPUT_TYPES is evaluated at runtime
+  → dynamic lists (e.g. checkpoints) must be computed inside INPUT_TYPES
+
+────────────────────────────────────────
+RETURN_TYPES & RETURN_NAMES
+────────────────────────────────────────
+
+• RETURN_TYPES MUST be a tuple of strings
+• Single output REQUIRES trailing comma:
+  ("IMAGE",)
+• No outputs still requires:
+  RETURN_TYPES = ()
+
+• RETURN_NAMES is optional
+  - Defaults to lowercase RETURN_TYPES
+
+────────────────────────────────────────
+FUNCTION EXECUTION RULES
+────────────────────────────────────────
+
+• FUNCTION is the string name of the method to execute
+• The method:
+  - Receives all required + hidden inputs
+  - Receives optional inputs ONLY if connected
+• Optional inputs MUST have defaults or be captured via **kwargs
+• Must return a tuple matching RETURN_TYPES exactly
+
+────────────────────────────────────────
+CATEGORY
+────────────────────────────────────────
+
+• CATEGORY controls node menu placement
+• Submenus use slash paths:
+  "examples/trivial"
+
+────────────────────────────────────────
+EXECUTION & CACHING
+────────────────────────────────────────
+
+• Nodes are cached by default
+• OUTPUT_NODE = True forces execution
+
+IS_CHANGED (optional):
+• Must NOT return bool
+• Node reruns if return_value != previous_value
+• To force always-changed:
+  return float("NaN")
+• Prefer returning a hash or version identifier
+
+────────────────────────────────────────
+VALIDATE_INPUTS
+────────────────────────────────────────
+
+• Optional @classmethod
+• Runs before execution
+• Returns:
+  - True → valid
+  - string → error message
+
+Rules:
+• Only constant (unconnected) inputs are provided
+• Any argument explicitly listed skips default backend validation
+• **kwargs disables validation for all inputs
+
+Type validation:
+• If VALIDATE_INPUTS receives `input_types`:
+  - It is a dict {input_name: datatype}
+  - All default type validation is skipped
+  - Manual checks are required
+
+────────────────────────────────────────
+LIST PROCESSING
+────────────────────────────────────────
+
+• Sequential processing is controlled by:
+  INPUT_IS_LIST = True
+  OUTPUT_IS_LIST = True
+
+────────────────────────────────────────
+DATATYPES — GENERAL RULES
+────────────────────────────────────────
+
+• Datatypes are client-side enforced
+• Connections between incompatible types are blocked
+• Python runtime values MUST match the datatype contract
+• Some datatypes are objects or dicts, not tensors
+
+────────────────────────────────────────
+COMBO (Dropdown)
+────────────────────────────────────────
+
+• Defined as list[str], not a string type
+• Python value received is str
+• First option is default
+
+Example:
+"mode": (["fast", "balanced", "quality"], {})
+
+Dynamic example:
+"ckpt": (folder_paths.get_filename_list("checkpoints"),)
+
+────────────────────────────────────────
+PRIMITIVE & REROUTE
+────────────────────────────────────────
+
+• Exist only in the frontend
+• Have no intrinsic datatype
+• Adopt connected datatype
+• Must NEVER be implemented in Python nodes
+
+────────────────────────────────────────
+PYTHON PRIMITIVE DATATYPES
+────────────────────────────────────────
+
+INT
+• Python: int
+• Required: default
+• Optional: min, max
+
+FLOAT
+• Python: float
+• Required: default
+• Optional: min, max, step
+
+STRING
+• Python: str
+• Required: default
+• Optional: multiline, placeholder, dynamicPrompts
+
+BOOLEAN
+• Python: bool
+• Required: default
+• Optional: label_on, label_off
+
+────────────────────────────────────────
+TENSOR DATATYPES
+────────────────────────────────────────
+
+IMAGE
+• Python: torch.Tensor
+• Shape: [B, H, W, C]
+• Typically C = 3 (RGB)
+• Values usually in [0,1]
+
+LATENT
+• Python: dict
+• Contains:
+  - "samples": torch.Tensor [B, C, H, W]
+• C typically = 4
+• Resolution is 1/8 image size
+• MUST NOT be treated as a tensor directly
+
+MASK
+• Python: torch.Tensor
+• Shape: [H, W] or [B, C, H, W]
+
+AUDIO
+• Python: dict
+• Contains:
+  - waveform: torch.Tensor [B, C, T]
+  - sample_rate: int
+• C = 1 (mono) or 2 (stereo)
+
+────────────────────────────────────────
+CUSTOM SAMPLING DATATYPES
+────────────────────────────────────────
+
+NOISE
+• Represents a noise SOURCE, not noise itself
+• Python object must implement:
+  generate_noise(self, input_latent) -> Tensor
+• Optional attribute: seed
+• Returned tensor must match latent shape
+
+SAMPLER
+• Python object with sample(...) method
+• Used for diffusion sampling
+
+SIGMAS
+• Python: torch.Tensor
+• Shape: [steps + 1]
+• Represents noise levels per step
+• Depends on MODEL
+
+GUIDER
+• Python callable object
+• __call__ receives noisy latents [B,C,H,W]
+• Returns predicted noise of same shape
+
+────────────────────────────────────────
+MODEL-RELATED DATATYPES
+────────────────────────────────────────
+
+• MODEL
+• CLIP
+• VAE
+• CONDITIONING
+
+Rules:
+• Treat as opaque objects
+• Do not mutate
+• Pass through unless explicitly instructed
+
+────────────────────────────────────────
+SUPPORTED INPUT EXTRA OPTIONS
+────────────────────────────────────────
+
+Only these keys are officially supported:
+
+default
+min
+max
+step
+label_on
+label_off
+defaultInput
+forceInput
+multiline
+placeholder
+dynamicPrompts
+lazy
+rawLink
+
+• Never reuse these keys for other purposes
+
+────────────────────────────────────────
+GENERATION CONSTRAINTS (CRITICAL)
+────────────────────────────────────────
+
+• Never invent datatypes
+• Never invent tensor shapes
+• Never treat LATENT as a tensor
+• Never pass raw tensors where dicts are required
+• Always return tuples
+• Always respect ComfyUI execution semantics
+• Prefer deterministic behavior (use seeds)
+
+────────────────────────────────────────
+MINIMAL VALID NODE TEMPLATE
+────────────────────────────────────────
+
+class CustomNode:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "value": ("INT", {"default": 1, "min": 0})
+            }
+        }
+
+    RETURN_TYPES = ("INT",)
+    FUNCTION = "run"
+    CATEGORY = "custom"
+
+    def run(self, value):
+        return (value + 1,)
