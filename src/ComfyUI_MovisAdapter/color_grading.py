@@ -197,4 +197,4 @@ def apply_color_grading(
 
         return result
 
-    return clip.fl_image(color_grade_frame)
+    return clip.image_transform(color_grade_frame)

@@ -8,12 +8,12 @@ import numpy as np
 import torch
 
 from src.ComfyUI_MovisAdapter.nodes import (
-    LoadVideo,
     SaveVideo,
     VideoConcatenate,
     VideoEffects,
     ColorGrading,
     VideoToImages,
+    ImagesToVideo,
 )
 from src.ComfyUI_MovisAdapter.video_types import VideoWrapper
 
@@ -36,13 +36,13 @@ def mock_video_wrapper(mock_video_clip):
     return VideoWrapper(mock_video_clip)
 
 
-def test_load_video_node_types():
-    """Test LoadVideo node types."""
-    assert LoadVideo.RETURN_TYPES == ("VIDEO",)
-    assert LoadVideo.CATEGORY == "video/moviepy/load"
-    input_types = LoadVideo.INPUT_TYPES()
-    assert "video_path" in input_types["required"]
-    assert "audio" in input_types["required"]
+def test_images_to_video_node_types():
+    """Test ImagesToVideo node types."""
+    assert ImagesToVideo.RETURN_TYPES == ("VIDEO",)
+    assert ImagesToVideo.CATEGORY == "video/moviepy/convert"
+    input_types = ImagesToVideo.INPUT_TYPES()
+    assert "images" in input_types["required"]
+    assert "fps" in input_types["required"]
 
 
 def test_save_video_node_types():
@@ -137,3 +137,23 @@ def test_video_to_images_conversion(mock_video_clip):
     assert result[0].shape[0] == 5
     # Should preserve resolution
     assert result[0].shape[1:] == (1080, 1920, 3)
+
+
+def test_images_to_video_conversion():
+    """Test ImagesToVideo basic conversion."""
+    # Create test images tensor [B, H, W, C] with values in [0, 1]
+    batch_size = 10
+    height, width, channels = 1080, 1920, 3
+    test_images = torch.rand(batch_size, height, width, channels)
+
+    node = ImagesToVideo()
+    result = node.convert_to_video(test_images, fps=24.0)
+
+    # Should return VideoWrapper
+    assert isinstance(result[0], VideoWrapper)
+    # Should have correct duration (10 frames at 24 fps = 10/24 seconds)
+    assert abs(result[0].duration - (batch_size / 24.0)) < 0.01
+    # Should have correct FPS
+    assert result[0].fps == 24.0
+    # Should preserve resolution
+    assert result[0].size == (width, height)

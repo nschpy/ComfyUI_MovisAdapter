@@ -110,4 +110,4 @@ def set_fps_if_needed(clip: VideoClip, target_fps: float) -> VideoClip:
     if clip.fps == target_fps:
         return clip
 
-    return clip.set_fps(target_fps)
+    return clip.with_fps(target_fps)

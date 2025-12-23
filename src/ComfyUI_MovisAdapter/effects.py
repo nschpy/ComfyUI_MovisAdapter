@@ -29,7 +29,7 @@ def apply_blur(clip: VideoClip, radius: int = 2, intensity: float = 1.0) -> Vide
         blurred = np.stack([gaussian_filter(frame[:, :, i], sigma=effective_radius) for i in range(frame.shape[2])], axis=2)
         return np.clip(blurred, 0, 255).astype(np.uint8)
 
-    return clip.fl_image(blur_frame)
+    return clip.image_transform(blur_frame)
 
 
 def apply_sharpen(clip: VideoClip, intensity: float = 1.0) -> VideoClip:
@@ -54,7 +54,7 @@ def apply_sharpen(clip: VideoClip, intensity: float = 1.0) -> VideoClip:
         sharpened = frame + intensity * (frame - blurred)
         return np.clip(sharpened, 0, 255).astype(np.uint8)
 
-    return clip.fl_image(sharpen_frame)
+    return clip.image_transform(sharpen_frame)
 
 
 def apply_mirror_x(clip: VideoClip) -> VideoClip:
@@ -134,7 +134,7 @@ def apply_noise(clip: VideoClip, noise_level: float = 0.1) -> VideoClip:
         noisy_frame = frame + noise
         return np.clip(noisy_frame, 0, 255).astype(np.uint8)
 
-    return clip.fl_image(add_noise)
+    return clip.image_transform(add_noise)
 
 
 def apply_vignette(clip: VideoClip, intensity: float = 1.0) -> VideoClip:
@@ -163,7 +163,7 @@ def apply_vignette(clip: VideoClip, intensity: float = 1.0) -> VideoClip:
     def apply_vignette_frame(frame):
         return np.clip(frame * vignette_mask, 0, 255).astype(np.uint8)
 
-    return clip.fl_image(apply_vignette_frame)
+    return clip.image_transform(apply_vignette_frame)
 
 
 EFFECT_FUNCTIONS = {

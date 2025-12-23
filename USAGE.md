@@ -11,21 +11,25 @@ pip install -e .
 
 ## Доступные ноды
 
-### 1. Load Video (video/moviepy/load)
+### 1. Images to Video (video/moviepy/convert)
 
-**Описание:** Загружает видео из файла.
+**Описание:** Преобразует последовательность изображений (IMAGE) в видео (VIDEO).
 
 **Входные параметры:**
-- `video_path` (STRING) - полный путь к видеофайлу
-- `audio` (BOOLEAN) - загружать ли аудиодорожку (по умолчанию: True)
+- `images` (IMAGE) - тензор изображений в формате [B, H, W, C], где значения в диапазоне [0, 1]
+- `fps` (FLOAT) - частота кадров для выходного видео (1.0-120.0, по умолчанию: 24.0)
 
 **Выход:** VIDEO
 
-**Пример использования:**
-```
-video_path: /path/to/video.mp4
-audio: True
-```
+**Как использовать:**
+1. Подключите выход IMAGE от любой ноды ComfyUI (например, LoadImage, ImageBatch и т.д.)
+2. Установите желаемый FPS для выходного видео
+3. Нода автоматически создаст VideoClip из последовательности кадров
+
+**Примечание:** 
+- Все изображения в батче должны иметь одинаковое разрешение
+- Длительность видео будет равна количеству кадров, деленному на FPS
+- Формат входных данных: torch.Tensor с формой [B, H, W, C], значения в [0, 1]
 
 ---
 
@@ -112,7 +116,7 @@ audio: True
 
 ---
 
-### 6. Video to Images (video/moviepy/convert)
+### 7. Video to Images (video/moviepy/convert)
 
 **Описание:** Конвертирует видео в последовательность кадров (IMAGE).
 
@@ -133,27 +137,27 @@ audio: True
 ### Пример 1: Простая обработка видео
 
 ```
-LoadVideo → VideoEffects (blur) → ColorGrading (brightness +0.2) → SaveVideo
+[IMAGE ноды] → ImagesToVideo → VideoEffects (blur) → ColorGrading (brightness +0.2) → SaveVideo
 ```
 
 ### Пример 2: Склейка видео с переходами
 
 ```
-LoadVideo (video1.mp4) ─┐
-                         ├─→ VideoConcatenate (mode: transition, type: crossfade) → SaveVideo
-LoadVideo (video2.mp4) ─┘
+[IMAGE ноды 1] → ImagesToVideo (fps: 24) ─┐
+                                           ├─→ VideoConcatenate (mode: transition, type: crossfade) → SaveVideo
+[IMAGE ноды 2] → ImagesToVideo (fps: 24) ─┘
 ```
 
 ### Пример 3: Извлечение и обработка кадров
 
 ```
-LoadVideo → VideoToImages → [любые image-ноды ComfyUI] → [преобразование обратно в видео]
+[IMAGE ноды] → ImagesToVideo → VideoToImages → [любые image-ноды ComfyUI] → ImagesToVideo → SaveVideo
 ```
 
 ### Пример 4: Комплексная обработка
 
 ```
-LoadVideo → VideoEffects (sharpen) → ColorGrading → VideoEffects (vignette) → SaveVideo
+[IMAGE ноды] → ImagesToVideo → VideoEffects (sharpen) → ColorGrading → VideoEffects (vignette) → SaveVideo
 ```
 
 ---

@@ -15,8 +15,11 @@ MoviePy integration for ComfyUI - Professional video editing nodes for ComfyUI w
 
 ## Features
 
-### Video Loading & Saving
-- **Load Video**: Load video files from disk with optional audio
+### Video Conversion
+- **Images to Video**: Convert IMAGE tensors to VIDEO format for video processing
+- **Video to Images**: Extract frames as IMAGE tensors for further processing in ComfyUI
+
+### Video Saving
 - **Save Video**: Export videos with configurable codecs, bitrates, and presets
 
 ### Video Editing
@@ -39,8 +42,6 @@ MoviePy integration for ComfyUI - Professional video editing nodes for ComfyUI w
 - **Gamma**: Apply gamma correction
 - **Hue Shift**: Rotate color spectrum
 
-### Video Conversion
-- **Video to Images**: Extract frames as IMAGE tensors for further processing in ComfyUI
 
 ## Develop
 
@@ -70,32 +71,32 @@ git push
 
 All nodes are organized under `video/moviepy/` category:
 
-- **video/moviepy/load**: LoadVideo
 - **video/moviepy/edit**: VideoConcatenate, VideoEffects, ColorGrading
-- **video/moviepy/convert**: VideoToImages
+- **video/moviepy/convert**: VideoToImages, ImagesToVideo
 - **video/moviepy/save**: SaveVideo
 
 ## Usage Examples
 
 ### Basic Video Processing Workflow
 
-1. **Load Video** → Set path to your video file
+1. **Images to Video** → Convert IMAGE tensors to VIDEO format
 2. **Video Effects** → Apply blur, sharpen, or other effects
 3. **Color Grading** → Adjust brightness, contrast, saturation
 4. **Save Video** → Export the processed video
 
 ### Concatenate Multiple Videos
 
-1. **Load Video** (×N) → Load multiple video clips
+1. **Images to Video** (×N) → Convert multiple image sequences to video clips
 2. **Concatenate Videos** → Set mode to "transition", choose transition type
 3. **Save Video** → Export final concatenated video
 
-### Extract Frames for Further Processing
+### Extract and Process Frames
 
-1. **Load Video** → Load source video
-2. **Video to Images** → Convert to IMAGE frames
-3. Use any ComfyUI image processing nodes
-4. (Optional) Convert back to video using ComfyUI video nodes
+1. Start with IMAGE tensors from any ComfyUI image nodes
+2. **Images to Video** → Convert to VIDEO format
+3. **Video to Images** → Extract frames back to IMAGE format
+4. Use any ComfyUI image processing nodes
+5. **Images to Video** → Convert back to video for saving
 
 ## Technical Details
 
