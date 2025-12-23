@@ -50,9 +50,7 @@ class SaveVideo:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            video.clip.write_videofile(
-                str(output_path), codec=codec, bitrate=bitrate, audio_codec=audio_codec, preset=preset, verbose=False, logger=None
-            )
+            video.clip.write_videofile(str(output_path), codec=codec, bitrate=bitrate, audio_codec=audio_codec, preset=preset, logger=None)
             return (str(output_path.absolute()),)
         except Exception as e:
             raise RuntimeError(f"Failed to save video: {str(e)}")
