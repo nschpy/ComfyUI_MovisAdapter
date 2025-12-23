@@ -3,7 +3,7 @@ Video effects for ComfyUI MoviePy integration.
 """
 
 from moviepy.video.VideoClip import VideoClip
-from moviepy.video.fx import mirror_x, mirror_y
+from moviepy.video.fx import MirrorX, MirrorY
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
@@ -67,7 +67,7 @@ def apply_mirror_x(clip: VideoClip) -> VideoClip:
     Returns:
         VideoClip with horizontal mirror effect
     """
-    return mirror_x(clip)
+    return MirrorX(clip)
 
 
 def apply_mirror_y(clip: VideoClip) -> VideoClip:
@@ -80,7 +80,7 @@ def apply_mirror_y(clip: VideoClip) -> VideoClip:
     Returns:
         VideoClip with vertical mirror effect
     """
-    return mirror_y(clip)
+    return MirrorY(clip)
 
 
 def apply_speed_up(clip: VideoClip, speed_factor: float = 1.5) -> VideoClip:

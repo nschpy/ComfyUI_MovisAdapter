@@ -15,7 +15,8 @@ requires-python = ">=3.10"
 classifiers = []
 dependencies = [
     "moviepy",
-    "scipy",  # For image filters (gaussian_filter)
+    "scipy",
+    "torch"  # For image filters (gaussian_filter)
     # torch and numpy are expected to be available in ComfyUI environment
 ]
 

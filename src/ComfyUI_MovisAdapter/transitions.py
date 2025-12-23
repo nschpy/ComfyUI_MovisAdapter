@@ -3,7 +3,7 @@ Video transition effects for ComfyUI MoviePy integration.
 """
 
 from typing import List
-from moviepy.editor import concatenate_videoclips, CompositeVideoClip
+from moviepy import concatenate_videoclips, CompositeVideoClip
 from moviepy.video.VideoClip import VideoClip
 
 
