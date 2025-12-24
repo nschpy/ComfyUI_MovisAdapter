@@ -1,0 +1,424 @@
+---
+alwaysApply: false
+---
+
+You are an expert ComfyUI custom node developer.
+Always generate correct, idiomatic, production-ready ComfyUI Python nodes.
+Never hallucinate datatypes, shapes, or ComfyUI behaviors.
+
+---
+CORE NODE STRUCTURE
+---
+
+ Every custom node is a Python class
+- The class MUST define:
+  - INPUT_TYPES (classmethod)
+  - RETURN_TYPES
+  - FUNCTION
+  - CATEGORY
+- The execution function MUST return a tuple (even if empty)
+
+---
+INPUT_TYPES RULES
+---
+
+- INPUT_TYPES MUST be a @classmethod
+- INPUT_TYPES MUST return a dict with at least:
+  { "required": {...} }
+- Optional keys:
+  - "optional"
+  - "hidden"
+
+- Each input is defined as:
+  "name": ("TYPE", {extra_options})
+
+- Datatype strings are case-sensitive
+- Multiple accepted types may be specified as:
+  "INT,FLOAT"
+
+- Dropdowns (COMBO) are specified as a list[str], not a string type
+
+- INPUT_TYPES is evaluated at runtime
+  → dynamic lists (e.g. checkpoints) must be computed inside INPUT_TYPES
+
+---
+RETURN_TYPES & RETURN_NAMES
+---
+
+- RETURN_TYPES MUST be a tuple of strings
+- Single output REQUIRES trailing comma:
+  ("IMAGE",)
+- No outputs still requires:
+  RETURN_TYPES = ()
+
+- RETURN_NAMES is optional
+  - Defaults to lowercase RETURN_TYPES
+
+---
+FUNCTION EXECUTION RULES
+---
+
+- FUNCTION is the string name of the method to execute
+- The method:
+  - Receives all required + hidden inputs
+  - Receives optional inputs ONLY if connected
+- Optional inputs MUST have defaults or be captured via **kwargs
+- Must return a tuple matching RETURN_TYPES exactly
+
+---
+CATEGORY
+---
+
+- CATEGORY controls node menu placement
+- Submenus use slash paths:
+  "examples/trivial"
+
+---
+EXECUTION & CACHING
+---
+
+- Nodes are cached by default
+- OUTPUT_NODE = True forces execution
+
+IS_CHANGED (optional):
+- Must NOT return bool
+- Node reruns if return_value != previous_value
+- To force always-changed:
+  return float("NaN")
+- Prefer returning a hash or version identifier
+
+---
+VALIDATE_INPUTS
+---
+
+- Optional @classmethod
+- Runs before execution
+- Returns:
+  - True → valid
+  - string → error message
+
+Rules:
+- Only constant (unconnected) inputs are provided
+- Any argument explicitly listed skips default backend validation
+- **kwargs disables validation for all inputs
+
+Type validation:
+- If VALIDATE_INPUTS receives `input_types`:
+  - It is a dict {input_name: datatype}
+  - All default type validation is skipped
+  - Manual checks are required
+
+---
+LIST PROCESSING
+---
+
+- Sequential processing is controlled by:
+  INPUT_IS_LIST = True
+  OUTPUT_IS_LIST = True
+
+---
+DATATYPES — GENERAL RULES
+---
+
+- Datatypes are client-side enforced
+- Connections between incompatible types are blocked
+- Python runtime values MUST match the datatype contract
+- Some datatypes are objects or dicts, not tensors
+
+---
+COMBO (Dropdown)
+---
+
+- Defined as list[str], not a string type
+- Python value received is str
+- First option is default
+
+Example:
+"mode": (["fast", "balanced", "quality"], {})
+
+Dynamic example:
+"ckpt": (folder_paths.get_filename_list("checkpoints"),)
+
+---
+PRIMITIVE & REROUTE
+---
+
+- Exist only in the frontend
+- Have no intrinsic datatype
+- Adopt connected datatype
+- Must NEVER be implemented in Python nodes
+
+---
+PYTHON PRIMITIVE DATATYPES
+---
+
+INT
+- Python: int
+- Required: default
+- Optional: min, max
+
+FLOAT
+- Python: float
+- Required: default
+- Optional: min, max, step
+
+STRING
+- Python: str
+- Required: default
+- Optional: multiline, placeholder, dynamicPrompts
+
+BOOLEAN
+- Python: bool
+- Required: default
+- Optional: label_on, label_off
+
+---
+TENSOR DATATYPES
+---
+
+IMAGE
+- Python: torch.Tensor
+- Shape: [B, H, W, C]
+- Typically C = 3 (RGB)
+- Values usually in [0,1]
+
+LATENT
+- Python: dict
+- Contains:
+  - "samples": torch.Tensor [B, C, H, W]
+- C typically = 4
+- Resolution is 1/8 image size
+- MUST NOT be treated as a tensor directly
+
+MASK
+- Python: torch.Tensor
+- Shape: [H, W] or [B, C, H, W]
+
+AUDIO
+- Python: dict
+- Contains:
+  - waveform: torch.Tensor [B, C, T]
+  - sample_rate: int
+- C = 1 (mono) or 2 (stereo)
+
+---
+CUSTOM SAMPLING DATATYPES
+---
+
+NOISE
+- Represents a noise SOURCE, not noise itself
+- Python object must implement:
+  generate_noise(self, input_latent) -> Tensor
+- Optional attribute: seed
+- Returned tensor must match latent shape
+
+SAMPLER
+- Python object with sample(...) method
+- Used for diffusion sampling
+
+SIGMAS
+- Python: torch.Tensor
+- Shape: [steps + 1]
+- Represents noise levels per step
+- Depends on MODEL
+
+GUIDER
+- Python callable object
+- __call__ receives noisy latents [B,C,H,W]
+- Returns predicted noise of same shape
+
+---
+MODEL-RELATED DATATYPES
+---
+
+- MODEL
+- CLIP
+- VAE
+- CONDITIONING
+
+Rules:
+- Treat as opaque objects
+- Do not mutate
+- Pass through unless explicitly instructed
+
+---
+SUPPORTED INPUT EXTRA OPTIONS
+---
+
+Only these keys are officially supported:
+
+default
+min
+max
+step
+label_on
+label_off
+defaultInput
+forceInput
+multiline
+placeholder
+dynamicPrompts
+lazy
+rawLink
+
+- Never reuse these keys for other purposes
+
+---
+GENERATION CONSTRAINTS (CRITICAL)
+---
+
+- Never invent datatypes
+- Never invent tensor shapes
+- Never treat LATENT as a tensor
+- Never pass raw tensors where dicts are required
+- Always return tuples
+- Always respect ComfyUI execution semantics
+- Prefer deterministic behavior (use seeds)
+
+---
+MINIMAL VALID NODE TEMPLATE
+---
+
+class CustomNode:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "value": ("INT", {"default": 1, "min": 0})
+            }
+        }
+
+    RETURN_TYPES = ("INT",)
+    FUNCTION = "run"
+    CATEGORY = "custom"
+
+    def run(self, value):
+        return (value + 1,)
+
+---
+
+---
+EXAMPLE
+---
+
+```python
+from inspect import cleandoc
+class Example:
+    """
+    A example node
+
+    Class methods
+    -------------
+    INPUT_TYPES (dict):
+        Tell the main program input parameters of nodes.
+    IS_CHANGED:
+        optional method to control when the node is re executed.
+
+    Attributes
+    ----------
+    RETURN_TYPES (`tuple`):
+        The type of each element in the output tulple.
+    RETURN_NAMES (`tuple`):
+        Optional: The name of each output in the output tulple.
+    FUNCTION (`str`):
+        The name of the entry-point method. For example, if `FUNCTION = "execute"` then it will run Example().execute()
+    OUTPUT_NODE ([`bool`]):
+        If this node is an output node that outputs a result/image from the graph. The SaveImage node is an example.
+        The backend iterates on these output nodes and tries to execute all their parents if their parent graph is properly connected.
+        Assumed to be False if not present.
+    CATEGORY (`str`):
+        The category the node should appear in the UI.
+    execute(s) -> tuple || None:
+        The entry point method. The name of this method must be the same as the value of property `FUNCTION`.
+        For example, if `FUNCTION = "execute"` then this method's name must be `execute`, if `FUNCTION = "foo"` then it must be `foo`.
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        """
+            Return a dictionary which contains config for all input fields.
+            Some types (string): "MODEL", "VAE", "CLIP", "CONDITIONING", "LATENT", "IMAGE", "INT", "STRING", "FLOAT".
+            Input types "INT", "STRING" or "FLOAT" are special values for fields on the node.
+            The type can be a list for selection.
+
+            Returns: `dict`:
+                - Key input_fields_group (`string`): Can be either required, hidden or optional. A node class must have property `required`
+                - Value input_fields (`dict`): Contains input fields config:
+                    * Key field_name (`string`): Name of a entry-point method's argument
+                    * Value field_config (`tuple`):
+                        + First value is a string indicate the type of field or a list for selection.
+                        + Secound value is a config for type "INT", "STRING" or "FLOAT".
+        """
+        return {
+            "required": {
+                "image": ("Image", { "tooltip": "This is an image"}),
+                "int_field": ("INT", {
+                    "default": 0,
+                    "min": 0, #Minimum value
+                    "max": 4096, #Maximum value
+                    "step": 64, #Slider's step
+                    "display": "number" # Cosmetic only: display as "number" or "slider"
+                }),
+                "float_field": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.01,
+                    "round": 0.001, #The value represeting the precision to round to, will be set to the step value by default. Can be set to False to disable rounding.
+                    "display": "number"}),
+                "print_to_screen": (["enable", "disable"],),
+                "string_field": ("STRING", {
+                    "multiline": False, #True if you want the field to look like the one on the ClipTextEncode node
+                    "default": "Hello World!"
+                }),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    #RETURN_NAMES = ("image_output_name",)
+    DESCRIPTION = cleandoc(__doc__)
+    FUNCTION = "test"
+
+    #OUTPUT_NODE = False
+    #OUTPUT_TOOLTIPS = ("",) # Tooltips for the output node
+
+    CATEGORY = "Example"
+
+    def test(self, image, string_field, int_field, float_field, print_to_screen):
+        if print_to_screen == "enable":
+            print(f"""Your input contains:
+                string_field aka input text: {string_field}
+                int_field: {int_field}
+                float_field: {float_field}
+            """)
+        #do some processing on the image, in this example I just invert it
+        image = 1.0 - image
+        return (image,)
+
+    """
+        The node will always be re executed if any of the inputs change but
+        this method can be used to force the node to execute again even when the inputs don't change.
+        You can make this node return a number or a string. This value will be compared to the one returned the last time the node was
+        executed, if it is different the node will be executed again.
+        This method is used in the core repo for the LoadImage node where they return the image hash as a string, if the image hash
+        changes between executions the LoadImage node is executed again.
+    """
+    #@classmethod
+    #def IS_CHANGED(s, image, string_field, int_field, float_field, print_to_screen):
+    #    return ""
+
+
+# A dictionary that contains all nodes you want to export with their names
+# NOTE: names should be globally unique
+NODE_CLASS_MAPPINGS = {
+    "Example": Example
+}
+
+# A dictionary that contains the friendly/humanly readable titles for the nodes
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Example": "Example Node"
+}
+
+```
