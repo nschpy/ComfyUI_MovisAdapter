@@ -240,7 +240,7 @@ class MPATextOverlay:
         text_clip_params['transparent'] = transparent
         
         # Create text clip
-        text_clip = TextClip(size=(video_width, video_height), **text_clip_params).with_duration(video_clip.duration)
+        text_clip = TextClip(**text_clip_params).with_duration(video_clip.duration)
         
         # Calculate position based on selected position and alignment settings
         # Position parameter controls vertical placement, horizontal_align controls horizontal
