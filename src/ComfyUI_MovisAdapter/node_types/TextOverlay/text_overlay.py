@@ -114,7 +114,8 @@ class MPATextOverlay:
         try:
             parts = [p.strip() for p in margin_str.split(',')]
             if len(parts) == 2:
-                return (int(parts[0]), int(parts[1]))
+                # If only two parts are given, repeat for 4-tuple (left, top, right, bottom)
+                return (int(parts[0]), int(parts[1]), int(parts[0]), int(parts[1]))
             elif len(parts) == 4:
                 return (int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3]))
             else:
@@ -198,14 +199,17 @@ class MPATextOverlay:
         if font_size and font_size > 0:
             text_clip_params['font_size'] = font_size
         
-        # Size
-        text_clip_params['size'] = (video_width, video_height)
-        
         # Margin
         parsed_margin = self._parse_margin(margin)
+        h_inset = 0
         if parsed_margin:
+            print(f"Parsed margin: {parsed_margin}")
             text_clip_params['margin'] = parsed_margin
+            h_inset = parsed_margin[0] + parsed_margin[2]
         
+        # Size is width - horizontal inset, height is auto-determined by method
+        text_clip_params['size'] = (video_width - h_inset, None)
+
         # Color
         parsed_color = self._parse_color(color)
         if parsed_color:
@@ -255,7 +259,7 @@ class MPATextOverlay:
             # Fallback: use vertical_align setting
             v_pos = vertical_align if vertical_align != 'center' else 'center'
         
-        # Horizontal position uses horizontal_align setting
+        # # Horizontal position uses horizontal_align setting
         h_pos = horizontal_align if horizontal_align != 'center' else 'center'
         text_position = (h_pos, v_pos)
         
