@@ -1,67 +1,158 @@
-# MovisAdapter
+# ComfyUI MoviePy Adapter (MPA)
 
-A collection of custom nodes for ComfyUI
+MoviePy Adapter - это набор кастомных нод для ComfyUI, которые интегрируют функциональность библиотеки MoviePy для профессиональной работы с видео.
 
-> [!NOTE]
-> This projected was created with a [cookiecutter](https://github.com/Comfy-Org/cookiecutter-comfy-extension) template. It helps you start writing custom nodes without worrying about the Python setup.
+## Возможности
 
-## Quickstart
+### 🎬 Объединение видео
+- **MPA Combine Videos** - объединяйте до 10 видео в одно последовательное видео
+- Автоматическое масштабирование до разрешения первого видео
+- Настраиваемая частота кадров (FPS)
 
-1. Install [ComfyUI](https://docs.comfy.org/get_started).
-1. Install [ComfyUI-Manager](https://github.com/ltdrdata/ComfyUI-Manager)
-1. Look up this extension in ComfyUI-Manager. If you are installing manually, clone this repository under `ComfyUI/custom_nodes`.
-1. Restart ComfyUI.
+### ✨ Переходы между видео
+- **MPA Video Transition** - создавайте профессиональные переходы:
+  - **crossfade** - плавное затухание и появление
+  - **fadein** - появление из чёрного
+  - **fadeout** - затухание в чёрный
+  - **fadeinout** - комбинированный переход
+- Настраиваемая длительность перехода
 
-# Features
+### 🎨 Видеоэффекты
 
-- A list of features
+#### MPA Brightness Effect
+Изменение яркости видео с точностью до 0.01
 
-## Develop
+#### MPA Contrast Effect
+Регулировка контраста для улучшения визуального восприятия
 
-To install the dev dependencies and pre-commit (will run the ruff hook), do:
+#### MPA Speed Effect
+Изменение скорости воспроизведения:
+- Ускорение (factor > 1.0)
+- Замедление/Slow Motion (factor < 1.0)
+- Диапазон: от 0.1x до 10x
+
+## Установка
+
+### Метод 1: Через pip (рекомендуется)
 
 ```bash
-cd ComfyUI_MovisAdapter
-pip install -e .[dev]
-pre-commit install
+cd ComfyUI/custom_nodes/ComfyUI_MovisAdapter
+pip install -e .
 ```
 
-The `-e` flag above will result in a "live" install, in the sense that any changes you make to your node extension will automatically be picked up the next time you run ComfyUI.
+### Метод 2: Ручная установка зависимостей
 
-## Publish to Github
-
-Install Github Desktop or follow these [instructions](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) for ssh.
-
-1. Create a Github repository that matches the directory name. 
-2. Push the files to Git
+```bash
+pip install moviepy>=1.0.3 numpy>=1.20.0 torch>=1.13.0
 ```
-git add .
-git commit -m "project scaffolding"
-git push
-``` 
 
-## Writing custom nodes
+## Быстрый старт
 
-An example custom node is located in [node.py](src/ComfyUI_MovisAdapter/nodes.py). To learn more, read the [docs](https://docs.comfy.org/essentials/custom_node_overview).
+1. Установите зависимости (см. выше)
+2. Перезапустите ComfyUI
+3. В меню нод найдите категорию **MPA/video**
+4. Добавьте нужные ноды на рабочее пространство
 
+## Архитектура
 
-## Tests
+```
+src/ComfyUI_MovisAdapter/
+├── common.py          # Общие функции конвертации IMAGE ↔ MoviePy
+├── nodes.py           # Регистрация всех нод
+└── node_types/
+    ├── CombineVideos/
+    ├── VideoTransition/
+    ├── BrightnessEffect/
+    ├── ContrastEffect/
+    └── SpeedEffect/
+```
 
-This repo contains unit tests written in Pytest in the `tests/` directory. It is recommended to unit test your custom node.
+## Примеры использования
 
-- [build-pipeline.yml](.github/workflows/build-pipeline.yml) will run pytest and linter on any open PRs
-- [validate.yml](.github/workflows/validate.yml) will run [node-diff](https://github.com/Comfy-Org/node-diff) to check for breaking changes
+### Создание видео с переходами
 
-## Publishing to Registry
+```
+[Видео 1] → [MPA Video Transition] → [Видео 2] → [MPA Video Transition] → [Видео 3]
+                  ↓ (crossfade)                        ↓ (fadeinout)
+                           [MPA Combine Videos] → [Результат]
+```
 
-If you wish to share this custom node with others in the community, you can publish it to the registry. We've already auto-populated some fields in `pyproject.toml` under `tool.comfy`, but please double-check that they are correct.
+### Slow Motion с эффектами
 
-You need to make an account on https://registry.comfy.org and create an API key token.
+```
+[Видео] → [MPA Speed Effect (0.5x)] → [MPA Brightness Effect (1.2)] → [Результат]
+```
 
-- [ ] Go to the [registry](https://registry.comfy.org). Login and create a publisher id (everything after the `@` sign on your registry profile). 
-- [ ] Add the publisher id into the pyproject.toml file.
-- [ ] Create an api key on the Registry for publishing from Github. [Instructions](https://docs.comfy.org/registry/publishing#create-an-api-key-for-publishing).
-- [ ] Add it to your Github Repository Secrets as `REGISTRY_ACCESS_TOKEN`.
+### Монтаж нескольких клипов
 
-A Github action will run on every git push. You can also run the Github action manually. Full instructions [here](https://docs.comfy.org/registry/publishing). Join our [discord](https://discord.com/invite/comfyorg) if you have any questions!
+```
+[Клип 1] ──┐
+[Клип 2] ──┤
+[Клип 3] ──┼─→ [MPA Combine Videos] → [Результат]
+[Клип 4] ──┤
+[Клип 5] ──┘
+```
 
+## Технические детали
+
+### Формат данных
+- **Вход:** ComfyUI `IMAGE` тензор `[B, H, W, C]`
+- **Выход:** ComfyUI `IMAGE` тензор `[B, H, W, C]`
+- **Значения:** автоматическая конвертация между `[0, 1]` (ComfyUI) и `[0, 255]` (MoviePy)
+
+### FPS (Frames Per Second)
+- По умолчанию: 24 fps
+- Настраивается для каждой ноды индивидуально
+- Диапазон: 1-120 fps
+
+## Документация
+
+Подробная документация по реализации доступна в файле [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+## Требования
+
+- Python >= 3.10
+- ComfyUI (установленный)
+- moviepy >= 1.0.3
+- numpy >= 1.20.0
+- torch >= 1.13.0
+
+## Roadmap / Будущие улучшения
+
+- [ ] Дополнительные эффекты: blur, rotate, scale
+- [ ] Поддержка аудиодорожек
+- [ ] Оптимизация производительности для 4K видео
+- [ ] Кэширование промежуточных результатов
+- [ ] Батч-обработка
+- [ ] Предпросмотр в реальном времени
+
+## Структура нод
+
+Все ноды имеют префикс **MPA** (MoviePy Adapter) и находятся в категории `MPA/video`:
+
+| Нода | Назначение | Основные параметры |
+|------|------------|-------------------|
+| **MPA Combine Videos** | Объединение видео | IMAGE1-10, fps |
+| **MPA Video Transition** | Переходы | IMAGE1, IMAGE2, transition_type, duration, fps |
+| **MPA Brightness Effect** | Яркость | IMAGE, factor (0-3), fps |
+| **MPA Contrast Effect** | Контраст | IMAGE, factor (0-3), fps |
+| **MPA Speed Effect** | Скорость | IMAGE, factor (0.1-10), fps |
+
+## Вклад в проект
+
+Приветствуются pull requests! Если у вас есть идеи по улучшению или вы нашли баг - создайте issue.
+
+## Лицензия
+
+GNU General Public License v3
+
+## Автор
+
+**nschpy** - [GitHub](https://github.com/nschpy/ComfyUI_MovisAdapter)
+
+---
+
+**Версия:** 0.0.1  
+**Дата:** 2025
+
+Создано с ❤️ для комьюнити ComfyUI
